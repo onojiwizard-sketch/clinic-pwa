@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Roster - FNPH Maiduguri</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <i class="fas fa-hospital"></i>
+                <span>FNPH Maiduguri</span>
+            </div>
+            <button class="menu-toggle" aria-label="Toggle menu">
+                <i class="fas fa-bars"></i>
+            </button>
+            <ul class="nav-menu">
+                <li class="nav-item"><a href="index.html"><i class="fas fa-home"></i> Home</a></li>
+                <li class="nav-item"><a href="doctors.html"><i class="fas fa-user-md"></i> Doctors</a></li>
+                <li class="nav-item"><a href="clinics.html"><i class="fas fa-clinic-medical"></i> Clinics</a></li>
+                <li class="nav-item active"><a href="daily-roster.html"><i class="fas fa-calendar-day"></i> Daily Roster</a></li>
+                <li class="nav-item"><a href="call-roster.html"><i class="fas fa-phone"></i> Call Roster</a></li>
+                <li class="nav-item"><a href="ward-teams.html"><i class="fas fa-bed"></i> Ward Teams</a></li>
+                <li class="nav-item"><a href="notifications.html"><i class="fas fa-bell"></i> Notifications</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        <header class="page-header">
+            <h1><i class="fas fa-calendar-day"></i> Daily Clinic Roster</h1>
+            <p>Daily scheduling and clinic assignments</p>
+        </header>
+
+        <div class="filter-controls">
+            <input type="date" id="filter-date" class="filter-input" value="<?php echo date('Y-m-d'); ?>">
+            <select id="filter-clinic" class="filter-select">
+                <option value="">All Clinics</option>
+                <option value="Assessment">Assessment</option>
+                <option value="GOPD">GOPD</option>
+                <option value="Child">Child & Adolescent</option>
+                <option value="Geriatrics">Geriatrics</option>
+            </select>
+            <select id="filter-status" class="filter-select">
+                <option value="">All Status</option>
+                <option value="Pending">Pending</option>
+                <option value="Sent">Sent</option>
+            </select>
+            <button class="btn btn-primary" onclick="window.currentApp.filterRoster()">
+                <i class="fas fa-filter"></i> Filter
+            </button>
+            <button class="btn btn-secondary" onclick="window.currentApp.resetRosterFilters()">
+                <i class="fas fa-redo"></i> Reset
+            </button>
+            <button class="btn btn-success" onclick="window.currentApp.exportToCSV()">
+                <i class="fas fa-download"></i> Export
+            </button>
+        </div>
+
+        <div class="card">
+            <h2>Clinic Schedule</h2>
+            <div id="roster-container">
+                <div class="loading">Loading roster data...</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Quick Statistics</h2>
+            <div class="stats-grid" id="roster-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Total Assignments:</span>
+                    <span class="stat-value" id="total-assignments">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Pending Notifications:</span>
+                    <span class="stat-value" id="pending-notifications">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Sent Notifications:</span>
+                    <span class="stat-value" id="sent-notifications">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Unique Clinics:</span>
+                    <span class="stat-value" id="unique-clinics">0</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2024 Federal Neuropsychiatric Hospital, Maiduguri. All rights reserved.</p>
+            <p class="last-update">Last updated: <span id="last-updated">Loading...</span></p>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+    <script>
+        class DailyRosterPage extends HospitalApp {
+            constructor() {
+                super();
+                this.rosterData = [];
+                this.filteredRoster = [];
+            }
+
+            async loadData() {
+                await this.loadRoster();
+            }
+
+            async loadRoster() {
+                const container = document.getElementById('roster-container');
+                this.showLoading(container);
+
+                try {
+                    this.rosterData = await this.fetchFromAPI('', { sheet: 'DailyClinicRoster' });
+                    this.filteredRoster = [...this.rosterData];
+                    this.renderRoster();
+                    this.updateStatistics();
+                } catch (error) {
+                    container.innerHTML = '<div class="error">Failed to load roster data</div>';
+                }
+            }
+
+            renderRoster() {
+                const container = document.getElementById('roster-container');
+                
+                if (this.filteredRoster.length === 0) {
+                    container.innerHTML = '<div class="no-data">No roster data found</div>';
+                    return;
+                }
+
+                container.innerHTML = `
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Day</th>
+                                <th>Clinic</th>
+                                <th>Consultants</th>
+                                <th>Senior Registrars</th>
+                                <th>Registrars</th>
+                                <th>Status</th>
+                                <th>Sent Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${this.filteredRoster.map(item => `
+                                <tr>
+                                    <td>${this.formatDate(item.Date)}</td>
+                                    <td>${item.Day}</td>
+                                    <td><strong>${item.Clinic}</strong></td>
+                                    <td><small>${(item.Consultants || '').substring(0, 50)}${(item.Consultants || '').length > 50 ? '...' : ''}</small></td>
+                                    <td><small>${(item['Senior Registrars'] || '').substring(0, 50)}${(item['Senior Registrars'] || '').length > 50 ? '...' : ''}</small></td>
+                                    <td><small>${(item.Registrars || '').substring(0, 50)}${(item.Registrars || '').length > 50 ? '...' : ''}</small></td>
+                                    <td class="status-${item.Status?.toLowerCase() || 'pending'}">
+                                        ${item.Status || 'Pending'}
+                                    </td>
+                                    <td><small>${item.SentTimestamp ? this.formatTime(item.SentTimestamp) : 'Not sent'}</small></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    <div style="margin-top: 20px; color: var(--light-text);">
+                        Showing ${this.filteredRoster.length} of ${this.rosterData.length} records
+                    </div>
+                `;
+            }
+
+            filterRoster() {
+                const dateFilter = document.getElementById('filter-date').value;
+                const clinicFilter = document.getElementById('filter-clinic').value;
+                const statusFilter = document.getElementById('filter-status').value;
+
+                this.filteredRoster = this.rosterData.filter(item => {
+                    const itemDate = new Date(item.Date).toISOString().split('T')[0];
+                    const matchesDate = !dateFilter || itemDate === dateFilter;
+                    const matchesClinic = !clinicFilter || item.Clinic === clinicFilter;
+                    const matchesStatus = !statusFilter || item.Status === statusFilter;
+
+                    return matchesDate && matchesClinic && matchesStatus;
+                });
+
+                this.renderRoster();
+                this.updateStatistics();
+            }
+
+            resetRosterFilters() {
+                document.getElementById('filter-date').value = new Date().toISOString().split('T')[0];
+                document.getElementById('filter-clinic').value = '';
+                document.getElementById('filter-status').value = '';
+                this.filteredRoster = [...this.rosterData];
+                this.renderRoster();
+                this.updateStatistics();
+            }
+
+            updateStatistics() {
+                const total = this.filteredRoster.length;
+                const pending = this.filteredRoster.filter(item => item.Status === 'Pending').length;
+                const sent = this.filteredRoster.filter(item => item.Status === 'Sent').length;
+                const uniqueClinics = [...new Set(this.filteredRoster.map(item => item.Clinic))].length;
+
+                document.getElementById('total-assignments').textContent = total;
+                document.getElementById('pending-notifications').textContent = pending;
+                document.getElementById('sent-notifications').textContent = sent;
+                document.getElementById('unique-clinics').textContent = uniqueClinics;
+            }
+
+            exportToCSV() {
+                const headers = ['Date', 'Day', 'Clinic', 'Consultants', 'Senior Registrars', 'Registrars', 'Status', 'Sent Time'];
+                const csvData = [
+                    headers.join(','),
+                    ...this.filteredRoster.map(item => [
+                        this.formatDate(item.Date),
+                        item.Day,
+                        `"${item.Clinic}"`,
+                        `"${(item.Consultants || '').replace(/"/g, '""')}"`,
+                        `"${(item['Senior Registrars'] || '').replace(/"/g, '""')}"`,
+                        `"${(item.Registrars || '').replace(/"/g, '""')}"`,
+                        item.Status || 'Pending',
+                        item.SentTimestamp ? this.formatTime(item.SentTimestamp) : ''
+                    ].join(','))
+                ].join('\n');
+
+                const blob = new Blob([csvData], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `roster_${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }
+        }
+
+        // Initialize roster page
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.location.pathname.includes('daily-roster.html')) {
+                window.currentApp = new DailyRosterPage();
+            }
+        });
+    </script>
+    <style>
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .stat-item {
+            background: var(--light-bg);
+            padding: 15px;
+            border-radius: var(--border-radius);
+            text-align: center;
+        }
+        
+        .stat-label {
+            display: block;
+            font-size: 0.9rem;
+            color: var(--light-text);
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            display: block;
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .status-pending {
+            color: var(--warning-color);
+            font-weight: bold;
+        }
+        
+        .status-sent {
+            color: var(--success-color);
+            font-weight: bold;
+        }
+    </style>
+</body>
+</html>
