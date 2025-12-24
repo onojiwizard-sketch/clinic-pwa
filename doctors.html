@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctors - FNPH Maiduguri</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <i class="fas fa-hospital"></i>
+                <span>FNPH Maiduguri</span>
+            </div>
+            <button class="menu-toggle" aria-label="Toggle menu">
+                <i class="fas fa-bars"></i>
+            </button>
+            <ul class="nav-menu">
+                <li class="nav-item"><a href="index.html"><i class="fas fa-home"></i> Home</a></li>
+                <li class="nav-item active"><a href="doctors.html"><i class="fas fa-user-md"></i> Doctors</a></li>
+                <li class="nav-item"><a href="clinics.html"><i class="fas fa-clinic-medical"></i> Clinics</a></li>
+                <li class="nav-item"><a href="daily-roster.html"><i class="fas fa-calendar-day"></i> Daily Roster</a></li>
+                <li class="nav-item"><a href="call-roster.html"><i class="fas fa-phone"></i> Call Roster</a></li>
+                <li class="nav-item"><a href="ward-teams.html"><i class="fas fa-bed"></i> Ward Teams</a></li>
+                <li class="nav-item"><a href="notifications.html"><i class="fas fa-bell"></i> Notifications</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        <header class="page-header">
+            <h1><i class="fas fa-user-md"></i> Medical Staff Directory</h1>
+            <p>Consultants and Registrars at Federal Neuropsychiatric Hospital, Maiduguri</p>
+        </header>
+
+        <div class="filter-controls">
+            <input type="text" id="search-doctor" class="filter-input" placeholder="Search by name, specialty, or rank...">
+            <select id="filter-rank" class="filter-select">
+                <option value="">All Ranks</option>
+                <option value="Consultant">Consultant</option>
+                <option value="Senior Registrar">Senior Registrar</option>
+                <option value="Junior Registrar">Junior Registrar</option>
+            </select>
+            <select id="filter-specialty" class="filter-select">
+                <option value="">All Specialties</option>
+                <!-- Will be populated dynamically -->
+            </select>
+            <button class="btn btn-primary" onclick="window.currentApp.filterDoctors()">
+                <i class="fas fa-filter"></i> Filter
+            </button>
+            <button class="btn btn-secondary" onclick="window.currentApp.resetFilters()">
+                <i class="fas fa-redo"></i> Reset
+            </button>
+        </div>
+
+        <div class="card">
+            <h2>Medical Professionals</h2>
+            <div id="doctors-container">
+                <div class="loading">Loading doctors...</div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2024 Federal Neuropsychiatric Hospital, Maiduguri. All rights reserved.</p>
+            <p class="last-update">Last updated: <span id="last-updated">Loading...</span></p>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+    <script>
+        class DoctorsPage extends HospitalApp {
+            constructor() {
+                super();
+                this.doctors = [];
+                this.filteredDoctors = [];
+            }
+
+            async loadData() {
+                await this.loadDoctors();
+                this.populateSpecialties();
+            }
+
+            async loadDoctors() {
+                const container = document.getElementById('doctors-container');
+                this.showLoading(container);
+
+                try {
+                    this.doctors = await this.fetchFromAPI('', { sheet: 'Doctors' });
+                    this.filteredDoctors = [...this.doctors];
+                    this.renderDoctors();
+                } catch (error) {
+                    container.innerHTML = '<div class="error">Failed to load doctors data</div>';
+                }
+            }
+
+            renderDoctors() {
+                const container = document.getElementById('doctors-container');
+                
+                if (this.filteredDoctors.length === 0) {
+                    container.innerHTML = '<div class="no-data">No doctors found matching your criteria</div>';
+                    return;
+                }
+
+                container.innerHTML = `
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Rank</th>
+                                <th>Specialty</th>
+                                <th>Contact</th>
+                                <th>Leave Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${this.filteredDoctors.map(doctor => `
+                                <tr>
+                                    <td>
+                                        <strong>${doctor.Name}</strong>
+                                        ${doctor.ProfilePhotoLink ? 
+                                            `<br><small><a href="${doctor.ProfilePhotoLink}" target="_blank">View Photo</a></small>` : 
+                                            ''}
+                                    </td>
+                                    <td>${doctor.Rank}</td>
+                                    <td>${doctor.Specialty || 'Not specified'}</td>
+                                    <td>
+                                        <small>${doctor.Email || 'No email'}<br>
+                                        ${doctor.Phone || 'No phone'}</small>
+                                    </td>
+                                    <td>
+                                        <span class="status-badge ${doctor.LeaveStatus === 'No' ? 'badge-sent' : 'badge-pending'}">
+                                            ${doctor.LeaveStatus === 'No' ? 'On Duty' : 'On Leave'}
+                                        </span>
+                                        ${doctor.ResumeDate ? `<br><small>Resumes: ${this.formatDate(doctor.ResumeDate)}</small>` : ''}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-secondary" onclick="window.currentApp.viewDoctor('${doctor.Email}')" 
+                                                style="padding: 5px 10px; font-size: 0.9rem;">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                        <a href="mailto:${doctor.Email}" class="btn btn-primary" 
+                                           style="padding: 5px 10px; font-size: 0.9rem;">
+                                            <i class="fas fa-envelope"></i> Email
+                                        </a>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    <div style="margin-top: 20px; color: var(--light-text);">
+                        Showing ${this.filteredDoctors.length} of ${this.doctors.length} doctors
+                    </div>
+                `;
+            }
+
+            populateSpecialties() {
+                const select = document.getElementById('filter-specialty');
+                if (!select) return;
+
+                const specialties = [...new Set(this.doctors
+                    .map(d => d.Specialty)
+                    .filter(s => s && s.trim()))].sort();
+
+                select.innerHTML = '<option value="">All Specialties</option>' +
+                    specialties.map(s => `<option value="${s}">${s}</option>`).join('');
+            }
+
+            filterDoctors() {
+                const searchTerm = document.getElementById('search-doctor').value.toLowerCase();
+                const rankFilter = document.getElementById('filter-rank').value;
+                const specialtyFilter = document.getElementById('filter-specialty').value;
+
+                this.filteredDoctors = this.doctors.filter(doctor => {
+                    const matchesSearch = !searchTerm || 
+                        doctor.Name.toLowerCase().includes(searchTerm) ||
+                        doctor.Specialty?.toLowerCase().includes(searchTerm) ||
+                        doctor.Rank?.toLowerCase().includes(searchTerm);
+                    
+                    const matchesRank = !rankFilter || doctor.Rank === rankFilter;
+                    const matchesSpecialty = !specialtyFilter || doctor.Specialty === specialtyFilter;
+
+                    return matchesSearch && matchesRank && matchesSpecialty;
+                });
+
+                this.renderDoctors();
+            }
+
+            resetFilters() {
+                document.getElementById('search-doctor').value = '';
+                document.getElementById('filter-rank').value = '';
+                document.getElementById('filter-specialty').value = '';
+                this.filteredDoctors = [...this.doctors];
+                this.renderDoctors();
+            }
+
+            viewDoctor(email) {
+                const doctor = this.doctors.find(d => d.Email === email);
+                if (doctor) {
+                    alert(`Doctor Details:\n\nName: ${doctor.Name}\nRank: ${doctor.Rank}\nSpecialty: ${doctor.Specialty}\nEmail: ${doctor.Email}\nPhone: ${doctor.Phone}\nLeave Status: ${doctor.LeaveStatus === 'No' ? 'On Duty' : 'On Leave'}\nBio: ${doctor.Bio || 'No bio available'}`);
+                }
+            }
+        }
+
+        // Initialize doctors page
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.location.pathname.includes('doctors.html')) {
+                window.currentApp = new DoctorsPage();
+            }
+        });
+    </script>
+</body>
+</html>
