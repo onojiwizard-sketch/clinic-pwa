@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FNPH Maiduguri - Hospital Management</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <i class="fas fa-hospital"></i>
+                <span>FNPH Maiduguri</span>
+            </div>
+            <button class="menu-toggle" aria-label="Toggle menu">
+                <i class="fas fa-bars"></i>
+            </button>
+            <ul class="nav-menu">
+                <li class="nav-item active"><a href="index.html"><i class="fas fa-home"></i> Home</a></li>
+                <li class="nav-item"><a href="doctors.html"><i class="fas fa-user-md"></i> Doctors</a></li>
+                <li class="nav-item"><a href="clinics.html"><i class="fas fa-clinic-medical"></i> Clinics</a></li>
+                <li class="nav-item"><a href="daily-roster.html"><i class="fas fa-calendar-day"></i> Daily Roster</a></li>
+                <li class="nav-item"><a href="call-roster.html"><i class="fas fa-phone"></i> Call Roster</a></li>
+                <li class="nav-item"><a href="ward-teams.html"><i class="fas fa-bed"></i> Ward Teams</a></li>
+                <li class="nav-item"><a href="notifications.html"><i class="fas fa-bell"></i> Notifications</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container">
+        <header class="hero">
+            <div class="hero-content">
+                <h1>Federal Neuropsychiatric Hospital Maiduguri</h1>
+                <p class="subtitle">Doctor Scheduling & Notification System</p>
+                <div class="hero-stats">
+                    <div class="stat-card">
+                        <i class="fas fa-user-md"></i>
+                        <h3 id="doctor-count">0</h3>
+                        <p>Doctors</p>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-clinic-medical"></i>
+                        <h3 id="clinic-count">0</h3>
+                        <p>Clinics</p>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-calendar-check"></i>
+                        <h3 id="roster-count">0</h3>
+                        <p>Today's Schedule</p>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-bell"></i>
+                        <h3 id="notification-count">0</h3>
+                        <p>Pending Notifications</p>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <section class="dashboard">
+            <div class="dashboard-grid">
+                <div class="card">
+                    <h2><i class="fas fa-clock"></i> Today's Schedule</h2>
+                    <div id="today-schedule" class="schedule-list">
+                        <div class="loading">Loading...</div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h2><i class="fas fa-phone"></i> On Call Today</h2>
+                    <div id="on-call-today" class="call-list">
+                        <div class="loading">Loading...</div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h2><i class="fas fa-exclamation-circle"></i> Quick Actions</h2>
+                    <div class="quick-actions">
+                        <button class="btn btn-primary" onclick="location.href='daily-roster.html'">
+                            <i class="fas fa-calendar-plus"></i> View Full Roster
+                        </button>
+                        <button class="btn btn-secondary" onclick="refreshData()">
+                            <i class="fas fa-sync-alt"></i> Refresh Data
+                        </button>
+                        <button class="btn btn-success" id="install-btn" style="display: none;">
+                            <i class="fas fa-download"></i> Install App
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2024 Federal Neuropsychiatric Hospital, Maiduguri. All rights reserved.</p>
+            <p class="last-update">Last updated: <span id="last-updated">Loading...</span></p>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+    <script src="service-worker.js"></script>
+</body>
+</html>
